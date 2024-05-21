@@ -2,7 +2,7 @@ local ADDON_NAME, namespace = ...;
 
 local BronzeTracker = namespace[ADDON_NAME];
 BronzeTracker = {};
-BronzeTracker.debugging = true;
+BronzeTracker.debugLevel = 3; -- NONE, ERROR, WARNING, NOTICE, VERBOSE
 BronzeTracker.currencyId = 2778;
 BronzeTracker.maximumRequired = 1607500;
 BronzeTracker.loaded = false;
@@ -11,39 +11,68 @@ namespace.Mounts = namespace.Mounts or {};
 namespace.Toys = namespace.Toys or {};
 namespace.Appearances = namespace.Appearances or {};
 
-function BronzeTracker:print(message)
-    if (BronzeTracker.debugging) then
-        print(message)
+function BronzeTracker:print(level, message, ...)
+    if (level <= BronzeTracker.debugLevel) then
+        print(ADDON_NAME, format(message, ...))
     end
 end
 
 function BronzeTracker:GetTotalRequired()
-    local currentTotal = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
-    local maximumRequired = 0;
+    BronzeTracker:print(3, "%d mounts, %d toys and %d appearances registered.",
+        #namespace.Mounts, #namespace.Toys, #namespace.Appearances);
 
-    for mountID, cost in pairs(namespace.Mounts) do
-        local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID);
-        if (isCollected ~= true) then
-            maximumRequired = maximumRequired + cost;
+    local currentTotal = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
+    local alreadyOwned, remainingNeeded = 0, 0;
+
+    for spellID, cost in pairs(namespace.Mounts) do
+        local mountID = C_MountJournal.GetMountFromSpell(spellID);
+        if (mountID == nil) then
+            BronzeTracker:print(2, "Warning: spellID %d is not a valid mount.", spellID);
+        else
+            local name, _, _, _, _, _, _, _, _, _, isCollected, _ = C_MountJournal.GetMountInfoByID(mountID);
+            
+            BronzeTracker:print(4, "%s collected: %s", name, tostring(isCollected));
+            
+            if (isCollected == true) then
+                alreadyOwned = alreadyOwned + cost;
+            else
+                remainingNeeded = remainingNeeded + cost;
+            end
         end
     end
 
     for itemID, cost in pairs(namespace.Toys) do
-        if (PlayerHasToy(itemID) ~= true) then
-            maximumRequired = maximumRequired + cost;
+        local _, toyName = C_ToyBox.GetToyInfo(itemID)
+
+        if (toyName == nil) then
+            BronzeTracker:print(2, "Warning: itemID %d is not a valid toy.", itemID);
+        else
+            local collected = PlayerHasToy(itemID);
+            BronzeTracker:print(4, "%s collected: %s", toyName, tostring(collected));
+
+            if (collected) then
+                alreadyOwned = alreadyOwned + cost;
+            else
+                remainingNeeded = remainingNeeded + cost;
+            end
         end
     end
 
     for itemID, cost in pairs(namespace.Appearances) do
-        if (C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID) ~= true) then
-            maximumRequired = maximumRequired + cost;
+        if (C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID) == true) then
+            alreadyOwned = alreadyOwned + cost;
+        else
+            remainingNeeded = remainingNeeded + cost;
         end
     end
 
-    local completion = floor(currentTotal.quantity / maximumRequired * 100);
-    local text = C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId, currentTotal.quantity)
-        + " / " + C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId, maximumRequired
-        + " (" + min(completion, 100) + "%)");
+    local completion = 100 - floor(currentTotal.quantity / remainingNeeded * 100);
+    local text = format("%d / %d %s (%d%% remaining, %d already spent)",
+        currentTotal.quantity,
+        remainingNeeded,
+        C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId),
+        min(completion, 100),
+        alreadyOwned);
 
     DEFAULT_CHAT_FRAME:AddMessage(text);
 end
@@ -53,5 +82,6 @@ _G["BronzeTracker"] = BronzeTracker;
 SLASH_BRONZETRACKER1 = "/bronzetracker";
 
 function SlashCmdList.BRONZETRACKER(msg, editbox)
+    BronzeTracker:print(3, "/bronzetracker invoked.");
     BronzeTracker:GetTotalRequired();
 end

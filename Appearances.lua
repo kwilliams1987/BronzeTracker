@@ -1,5 +1,6 @@
 local _, namespace = ...;
 
 namespace.Appearances = {
-    104309 =  2500,
+    [217842] = 4000,
+    [217828] = 3000
 };

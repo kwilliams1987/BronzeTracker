@@ -1,9 +1,10 @@
-## Interface: 80200
+## Interface: 100100
 ## Title: Remix Bronze Tracker
 ## Author: Kristian Williams
 ## Version: 1.0
+## Dependencies: 
 
-BronzeTracker.lua
 Mounts.lua
 Toys.lua
 Appearances.lua
+BronzeTracker.lua
