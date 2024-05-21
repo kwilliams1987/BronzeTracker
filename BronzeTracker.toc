@@ -1,0 +1,6 @@
+## Interface: 80200
+## Title: Remix Bronze Tracker
+## Author: Kristian Williams
+## Version: 1.0
+
+BronzeTracker.lua
