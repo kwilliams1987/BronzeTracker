@@ -4,7 +4,10 @@
 ## Version: 1.0
 ## Dependencies: 
 
+localization\Strings.lua
+localization\en-US.lua
 Mounts.lua
 Toys.lua
 Appearances.lua
+Logger.lua
 BronzeTracker.lua

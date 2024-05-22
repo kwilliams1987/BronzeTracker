@@ -1,8 +1,9 @@
 local ADDON_NAME, namespace = ...;
 
 local BronzeTracker = namespace[ADDON_NAME];
+local Logger, LogLevel = namespace.Logger, namespace.Logger.LogLevel;
+local Strings = namespace.Strings;
 BronzeTracker = {};
-BronzeTracker.debugLevel = 3; -- NONE, ERROR, WARNING, NOTICE, VERBOSE
 BronzeTracker.currencyId = 2778;
 BronzeTracker.maximumRequired = 1607500;
 BronzeTracker.loaded = false;
@@ -11,15 +12,21 @@ namespace.Mounts = namespace.Mounts or {};
 namespace.Toys = namespace.Toys or {};
 namespace.Appearances = namespace.Appearances or {};
 
-function BronzeTracker:print(level, message, ...)
-    if (level <= BronzeTracker.debugLevel) then
-        print(ADDON_NAME, format(message, ...))
+function tableSize(table)
+    local count = 0;
+
+    for _ in pairs(table) do
+        count = count + 1
     end
+
+    return count
 end
 
 function BronzeTracker:GetTotalRequired()
-    BronzeTracker:print(3, "%d mounts, %d toys and %d appearances registered.",
-        #namespace.Mounts, #namespace.Toys, #namespace.Appearances);
+    Logger:Print(LogLevel.NOTICE, Strings:Get("REGISTERED_ITEMS"),
+        tableSize(namespace.Mounts), 
+        tableSize(namespace.Toys), 
+        tableSize(namespace.Appearances));
 
     local currentTotal = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
     local alreadyOwned, remainingNeeded = 0, 0;
@@ -27,11 +34,11 @@ function BronzeTracker:GetTotalRequired()
     for spellID, cost in pairs(namespace.Mounts) do
         local mountID = C_MountJournal.GetMountFromSpell(spellID);
         if (mountID == nil) then
-            BronzeTracker:print(2, "Warning: spellID %d is not a valid mount.", spellID);
+            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_MOUNT"), spellID);
         else
             local name, _, _, _, _, _, _, _, _, _, isCollected, _ = C_MountJournal.GetMountInfoByID(mountID);
             
-            BronzeTracker:print(4, "%s collected: %s", name, tostring(isCollected));
+            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), name, tostring(isCollected));
             
             if (isCollected == true) then
                 alreadyOwned = alreadyOwned + cost;
@@ -45,10 +52,10 @@ function BronzeTracker:GetTotalRequired()
         local _, toyName = C_ToyBox.GetToyInfo(itemID)
 
         if (toyName == nil) then
-            BronzeTracker:print(2, "Warning: itemID %d is not a valid toy.", itemID);
+            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_TOY"), itemID);
         else
             local collected = PlayerHasToy(itemID);
-            BronzeTracker:print(4, "%s collected: %s", toyName, tostring(collected));
+            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), toyName, tostring(collected));
 
             if (collected) then
                 alreadyOwned = alreadyOwned + cost;
@@ -59,15 +66,26 @@ function BronzeTracker:GetTotalRequired()
     end
 
     for itemID, cost in pairs(namespace.Appearances) do
-        if (C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID) == true) then
-            alreadyOwned = alreadyOwned + cost;
+        local itemName = C_Items.GetItemInfo(itemID);
+        local itemAppearanceID, _ = C_TransmogCollection.GetItemInfo(itemID);
+
+        if (itemName == nil or itemAppearanceID == nil) then
+            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_APPEARANCE"), itemID);
         else
-            remainingNeeded = remainingNeeded + cost;
+            local collected = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID);
+
+            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), itemName, tostring(collected));
+
+            if (collected == true) then
+                alreadyOwned = alreadyOwned + cost;
+            else
+                remainingNeeded = remainingNeeded + cost;
+            end
         end
     end
 
     local completion = 100 - floor(currentTotal.quantity / remainingNeeded * 100);
-    local text = format("%d / %d %s (%d%% remaining, %d already spent)",
+    local text = format(Strings:Get("COLLECTION_SUMMARY"),
         currentTotal.quantity,
         remainingNeeded,
         C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId),
@@ -79,9 +97,15 @@ end
 
 _G["BronzeTracker"] = BronzeTracker;
 
-SLASH_BRONZETRACKER1 = "/bronzetracker";
+SLASH_BRONZETRACKER1 = Strings:Get("SLASHCOMMAND");
 
 function SlashCmdList.BRONZETRACKER(msg, editbox)
-    BronzeTracker:print(3, "/bronzetracker invoked.");
+    local logLevel, _ = msg:match("^(%S*)%s*(.-)$")
+
+    if (logLevel ~= nil) then
+        Logger:Level(logLevel)
+    end
+
+    Logger:Print(LogLevel.NOTICE, Strings:Get("COMMAND_INVOKED"));
     BronzeTracker:GetTotalRequired();
 end
