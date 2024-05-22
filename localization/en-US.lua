@@ -1,7 +1,7 @@
 local ADDON_NAME, namespace = ...;
 
 namespace.Strings = namespace.Strings or {};
-namespace.Strings["en-US"] = {
+namespace.Strings["enUS"] = {
     ["SLASHCOMMAND"] = "/bronzetracker",
     ["COMMAND_INVOKED"] = "/bronzetracker invoked.",
     ["REGISTERED_ITEMS"] = "%d mounts, %d toys and %d appearances registered.",
