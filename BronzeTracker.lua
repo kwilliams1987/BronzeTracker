@@ -28,7 +28,7 @@ function BronzeTracker:GetTotalRequired()
         tableSize(namespace.Toys), 
         tableSize(namespace.Appearances));
 
-    local currentTotal = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
+    local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
     local alreadyOwned, remainingNeeded = 0, 0;
 
     for spellID, cost in pairs(namespace.Mounts) do
@@ -84,9 +84,9 @@ function BronzeTracker:GetTotalRequired()
         end
     end
 
-    local completion = 100 - floor(currentTotal.quantity / remainingNeeded * 100);
+    local completion = 100 - floor(currencyInfo.quantity / remainingNeeded * 100);
     local text = format(Strings:Get("COLLECTION_SUMMARY"),
-        currentTotal.quantity,
+        currencyInfo.quantity,
         remainingNeeded,
         C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId),
         min(completion, 100),
