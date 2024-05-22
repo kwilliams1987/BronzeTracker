@@ -1,8 +1,8 @@
 local ADDON_NAME, namespace = ...;
 
+namespace.Logger = {};
 local Logger = namespace.Logger;
 
-Logger = {};
 Logger.LogLevel = {
     ["NONE"] = 0,
     ["ERROR"] = 1,
@@ -19,10 +19,10 @@ function Logger:Print(level, message, ...)
     end
 end
 
-function Logger:Level(level = nil)
+function Logger:Level(level)
     local logLevel = tonumber(level);
 
-    if (logLevel >= Logger.LogLevel.NONE and logLevel <= Logger.LogLevel.VERBOSE) then
+    if (logLevel ~= nil and logLevel >= Logger.LogLevel.NONE and logLevel <= Logger.LogLevel.VERBOSE) then
         minLogLevel = logLevel;
     end
 
