@@ -31,8 +31,13 @@ function BronzeTracker:GetTotalRequired()
     local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
     local alreadyOwned, remainingNeeded = 0, 0;
 
-    for spellID, cost in pairs(namespace.Mounts) do
-        local mountID = C_MountJournal.GetMountFromSpell(spellID);
+    for itemID, cost in pairs(namespace.Mounts) do
+        local spellID, mountID = GetItemSpell(itemID), nil;
+        
+        if (spellID ~= nil) then
+            mountID = C_MountJournal.GetMountFromSpell(spellID);
+        end
+
         if (mountID == nil) then
             Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_MOUNT"), spellID);
         else
