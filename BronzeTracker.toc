@@ -3,6 +3,7 @@
 ## Author: Kristian Williams
 ## Version: 1.0
 ## Dependencies: 
+## X-Curse-Project-ID: 1022925
 
 localization\Strings.lua
 localization\en-US.lua
