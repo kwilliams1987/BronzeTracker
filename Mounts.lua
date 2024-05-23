@@ -1,6 +1,7 @@
 local _, namespace = ...;
 
-namespace.Mounts = {
+namespace.Collections = namespace.Collections or {};
+namespace.Collections.Mounts = {
     [ 87771] = 38500, -- Reins of the Heavenly Onyx Cloud Serpent
     [ 87777] = 18700, -- Reins of the Astral Cloud Serpent
     [ 89783] = 38500, -- Son of Galleon's Saddle

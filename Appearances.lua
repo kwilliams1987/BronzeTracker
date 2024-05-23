@@ -1,6 +1,7 @@
 local _, namespace = ...;
 
-namespace.Appearances = {
+namespace.Collections = namespace.Collections or {};
+namespace.Collections.Appearances = {
     [104399] =  8000, -- Hellscream's Warbow
     [104400] =  8000, -- Hellscream's Razor
     [104401] =  8000, -- Hellscream's Doomblade

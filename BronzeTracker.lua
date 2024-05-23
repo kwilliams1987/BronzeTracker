@@ -1,7 +1,7 @@
 local ADDON_NAME, namespace = ...;
 
 local BronzeTracker = namespace[ADDON_NAME];
-local Logger, LogLevel, Strings, Collection = namespace.Logger, namespace.Logger.LogLevel, namespace.Strings, namespace.CollectionUtilities;
+local Logger, LogLevel, Strings = namespace.Logger, namespace.Logger.LogLevel, namespace.Strings;
 
 BronzeTracker = {};
 BronzeTracker.currencyId = 2778;
@@ -28,49 +28,34 @@ function BronzeTracker:GetTotalRequired()
 
     local itemLoader = ContinuableContainer:Create();
 
-    for itemID in pairs(namespace.Mounts) do
-        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
-    end
+    for collection, items in pairs(namespace.Collections) do
+        Logger:Print(LogLevel.VERBOSE, Strings:Get("PRELOADING_ITEM_TYPE"), collection);
 
-    for itemID in pairs(namespace.Toys) do
-        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
-    end
-
-    for itemID in pairs(namespace.Appearances) do
-        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
+        for itemID in pairs(items) do
+            itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
+        end
     end
 
     itemLoader:ContinueOnLoad(function()
         local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
         local alreadyOwned, remainingNeeded = 0, 0;
+        local collections = {
+            ["Mounts"] = "PlayerHasMount",
+            ["Toys"] = "PlayerHasToy",
+            ["Appearances"] = "PlayerHasAppearance"
+        };
 
-        for itemID, cost in pairs(namespace.Mounts) do
-            local collected = Collection:PlayerHasMount(itemID);
+        for collection, tester in pairs(collections) do
+            for itemID, cost in pairs(namespace.Collections[collection]) do
+                local collected = namespace.CollectionUtilities[tester](itemID);
 
-            if (collected == true) then
-                alreadyOwned = alreadyOwned + cost;
-            else
-                remainingNeeded = remainingNeeded + cost;
-            end
-        end
-
-        for itemID, cost in pairs(namespace.Toys) do
-            local collected = Collection:PlayerHasToy(itemID);
-
-            if (collected) then
-                alreadyOwned = alreadyOwned + cost;
-            else
-                remainingNeeded = remainingNeeded + cost;
-            end
-        end
-
-        for itemID, cost in pairs(namespace.Appearances) do
-            local collected = Collection:PlayerHasAppearance(itemID);
-
-            if (collected) then
-                alreadyOwned = alreadyOwned + cost;
-            else
-                remainingNeeded = remainingNeeded + cost;
+                if (collected ~= nil) then
+                    if (collected == true) then
+                        alreadyOwned = alreadyOwned + cost;
+                    else
+                        remainingNeeded = remainingNeeded + cost;
+                    end
+                end
             end
         end
 

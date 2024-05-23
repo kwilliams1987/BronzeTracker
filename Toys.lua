@@ -1,6 +1,7 @@
 local _, namespace = ...;
 
-namespace.Toys = {
+namespace.Collections = namespace.Collections or {};
+namespace.Collections.Toys = {
     [ 86565] =  3850, -- Battle Horn
     [ 86568] =  7700, -- Mr. Smite's Brass Compass
     [ 86571] =  3850, -- Kang's Bindstone 

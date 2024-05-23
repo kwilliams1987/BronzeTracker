@@ -7,6 +7,7 @@ CollectionUtilities = {};
 
 function CollectionUtilities:PlayerHasMount(itemID)
     local mountID = C_MountJournal.GetMountFromItem(itemID);
+
     if (mountID == nil) then
         Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_MOUNT"), itemID);
 
