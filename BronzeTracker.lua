@@ -1,14 +1,14 @@
 local ADDON_NAME, namespace = ...;
 
 local BronzeTracker = namespace[ADDON_NAME];
-local Logger, LogLevel, Strings = namespace.Logger, namespace.Logger.LogLevel, namespace.Strings;
+local Logger, LogLevel, Strings, Collection = namespace.Logger, namespace.Logger.LogLevel, namespace.Strings, namespace.CollectionUtilities;
 
 BronzeTracker = {};
 BronzeTracker.currencyId = 2778;
 BronzeTracker.maximumRequired = 1607500;
 BronzeTracker.loaded = false;
 
-function tableSize(table)
+local function tableSize(table)
     local count = 0;
 
     for _ in pairs(table) do
@@ -20,57 +20,32 @@ end
 
 function BronzeTracker:GetTotalRequired()
     Logger:Print(LogLevel.NOTICE, Strings:Get("REGISTERED_ITEMS"),
-        tableSize(namespace.Mounts), 
-        tableSize(namespace.Toys), 
+        tableSize(namespace.Mounts),
+        tableSize(namespace.Toys),
         tableSize(namespace.Appearances));
 
-    local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
-    local alreadyOwned, remainingNeeded = 0, 0;
+    Logger:Print(LogLevel.VERBOSE, Strings:Get("PRELOADING_ITEM_INFO"));
 
-    for itemID, cost in pairs(namespace.Mounts) do
-        local mountID = C_MountJournal.GetMountFromItem(itemID);
-        if (mountID == nil) then
-            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_MOUNT"), itemID);
-        else
-            local name, _, _, _, _, _, _, _, _, _, isCollected, _ = C_MountJournal.GetMountInfoByID(mountID);
-            
-            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), name, tostring(isCollected));
-            
-            if (isCollected == true) then
-                alreadyOwned = alreadyOwned + cost;
-            else
-                remainingNeeded = remainingNeeded + cost;
-            end
-        end
+    local itemLoader = ContinuableContainer:Create();
+
+    for itemID in pairs(namespace.Mounts) do
+        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
     end
 
-    for itemID, cost in pairs(namespace.Toys) do
-        local _, toyName = C_ToyBox.GetToyInfo(itemID)
-
-        if (toyName == nil) then
-            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_TOY"), itemID);
-        else
-            local collected = PlayerHasToy(itemID);
-            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), toyName, tostring(collected));
-
-            if (collected) then
-                alreadyOwned = alreadyOwned + cost;
-            else
-                remainingNeeded = remainingNeeded + cost;
-            end
-        end
+    for itemID in pairs(namespace.Toys) do
+        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
     end
 
-    for itemID, cost in pairs(namespace.Appearances) do
-        local itemName = C_Item.GetItemInfo(itemID);
-        local itemAppearanceID, _ = C_TransmogCollection.GetItemInfo(itemID);
+    for itemID in pairs(namespace.Appearances) do
+        itemLoader:AddContinuable(Item:CreateFromItemID(itemID));
+    end
 
-        if (itemName == nil or itemAppearanceID == nil) then
-            Logger:Print(LogLevel.WARNING, Strings:Get("WARNING_INVALID_APPEARANCE"), itemID);
-        else
-            local collected = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID);
+    itemLoader:ContinueOnLoad(function()
+        local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(BronzeTracker.currencyId);
+        local alreadyOwned, remainingNeeded = 0, 0;
 
-            Logger:Print(LogLevel.VERBOSE, Strings:Get("COLLECTED_STATE"), itemName, tostring(collected));
+        for itemID, cost in pairs(namespace.Mounts) do
+            local collected = Collection:PlayerHasMount(itemID);
 
             if (collected == true) then
                 alreadyOwned = alreadyOwned + cost;
@@ -78,21 +53,41 @@ function BronzeTracker:GetTotalRequired()
                 remainingNeeded = remainingNeeded + cost;
             end
         end
-    end
 
-    if (remainingNeeded == 0) then
-        DEFAULT_CHAT_FRAME:AddMessage(Strings:Get("COLLECTION_COMPLETE"));
-    else
-        local completion = 100 - floor(currencyInfo.quantity / remainingNeeded * 100);
-        local text = format(Strings:Get("COLLECTION_SUMMARY"),
-            currencyInfo.quantity,
-            remainingNeeded,
-            C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId),
-            min(completion, 100),
-            alreadyOwned);
+        for itemID, cost in pairs(namespace.Toys) do
+            local collected = Collection:PlayerHasToy(itemID);
 
-        DEFAULT_CHAT_FRAME:AddMessage(text);
-    end
+            if (collected) then
+                alreadyOwned = alreadyOwned + cost;
+            else
+                remainingNeeded = remainingNeeded + cost;
+            end
+        end
+
+        for itemID, cost in pairs(namespace.Appearances) do
+            local collected = Collection:PlayerHasAppearance(itemID);
+
+            if (collected) then
+                alreadyOwned = alreadyOwned + cost;
+            else
+                remainingNeeded = remainingNeeded + cost;
+            end
+        end
+
+        if (remainingNeeded == 0) then
+            DEFAULT_CHAT_FRAME:AddMessage(Strings:Get("COLLECTION_COMPLETE"));
+        else
+            local completion = 100 - floor(currencyInfo.quantity / remainingNeeded * 100);
+            local text = format(Strings:Get("COLLECTION_SUMMARY"),
+                currencyInfo.quantity,
+                remainingNeeded,
+                C_CurrencyInfo.GetCurrencyLink(BronzeTracker.currencyId),
+                min(completion, 100),
+                alreadyOwned);
+
+            DEFAULT_CHAT_FRAME:AddMessage(text);
+        end
+    end);
 end
 
 _G["BronzeTracker"] = BronzeTracker;

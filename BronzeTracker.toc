@@ -11,4 +11,5 @@ Mounts.lua
 Toys.lua
 Appearances.lua
 Logger.lua
+CollectionUtilities.lua
 BronzeTracker.lua
